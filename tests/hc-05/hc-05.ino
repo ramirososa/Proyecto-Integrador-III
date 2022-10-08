@@ -14,7 +14,10 @@ void setup() {
 void loop() {
   if(Serial.available() > 0){ // Checks whether data is comming from the serial port
     state = Serial.read(); // Reads the data from the serial port
+ 
  }
+ Serial.println(state);
+ delay(1000);
 
  if (state == '0') {
   digitalWrite(ledPin, LOW); // Turn LED OFF
@@ -25,5 +28,5 @@ void loop() {
   digitalWrite(ledPin, HIGH);
   Serial.println("LED: ON");;
   state = 0;
- } 
+ }
 }
