@@ -3,6 +3,7 @@
 
 // Pines que bancan interrupts 2,3,21,20,19,18.
 //bit ins = [0,0,0,0,0,0,0,0,0,0,0,0]
+int ins = []
 // Hacer una estructura con por un lado el numero de pines y por otro lado si el pin se prendio.
 /*struct ins {
   bit in;
