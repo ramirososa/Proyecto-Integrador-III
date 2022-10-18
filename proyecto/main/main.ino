@@ -1,27 +1,22 @@
 /*ARCHIVO MAIN DEL PROYECTO*/
 #include main.h
 
-// Pines que bancan interrupts 2,3,21,20,19,18.
-//bit ins = [0,0,0,0,0,0,0,0,0,0,0,0]
-int ins = []
+const int PINOUT_INPUTS = [E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12];
+const int PINOUT_OUTPUTS = [S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12];
+int INPUTS_ENABLE = [];
 // Hacer una estructura con por un lado el numero de pines y por otro lado si el pin se prendio.
-/*struct ins {
-  bit in;
-  
-}*/
 
 boolean FLAG_ESCLUSA = false;
 boolean FLAG_RECEIVE = false;
 
 void isr_esclusa(){
-  FLAG_ESCLUSA = true;
+  FLAG_ESCLUSA = !FLAG_ESCLUSA; //Pongo el flag de esclusa prendida o apagada en el opuesto, por defecto empiezo el programa con esclusa apagada
 }
 
 void isr_cierre(){
-  timer_cierre();
+  timer_cierre();//Empiezo timer del cierre de las puertas.
 }
 void setup() {
-  // put your setup code here, to run once:
    Serial.begin(9600); 
    pinMode(E1,INPUT);
    pinMode(E2,INPUT);
@@ -51,79 +46,46 @@ void setup() {
    attachInterrupt(digitalPinToInterrupt(P2),isr_esclusa, RISING);  
 }
 
+//Que hago si tengo que poner un bajo? en E1 por ejemplo..
+//PRE
+//POST
+void mode_no_esclusa(){
+  int i=0;
+  while(i<(sizeof(INPUTS_ENABLE)/sizeof(int)){
+    digitalWrite(OUTPUTS_ENABLE[i],HIGH)    //WARNING! revisar esto, no me importa saber que pines se prendiero, quiero saber cuales voy a prenderrr
+  }
+}
 
-void modoComun(){
+void mode_esclusa(){
+  
   
 }
 
-
 void loop() {
-  // put your main code here, to run repeatedly:
   
-  //Pooling de entradas
-  if(digitalRead(E1)==HIGH){
-    ins[0]=1;
-    FLAG_RECEIVE=true;
-  }
+  INPUTS_ENABLE = [];
+  
+  while(1){
+/*----------------- Analisis de flancos -----------------*/
+    int j=0;
+    if(digitalRead(PINOUT_INPUTS[0])==LOW){
+        ins[j]=PINOUT_INPUTS[0];
+        FLAG_RECEIVE=true;
+        j++;
+      }
+    int i=1;
+    while(i<12){
+      if(digitalRead(PINOUT_INPUTS[i])==HIGH){
+        ins[j]=PINOUT_INPUTS[i];
+        FLAG_RECEIVE=true;
+        j++;
+      }
+    }    
+/*----------------- Llamar funciones auxiliares -----------------*/
+    if(!FLAG_ESCLUSA && FLAG_RECEIVE) mode_no_esclusa();
+    else if(FLAG_ESCLUSA && FLAG_RECEIVE) mode_esclusa();
     
-  if(digitalRead(E2)==HIGH){
-    ins[1]=1;
-    FLAG_RECEIVE=true;
   }
-    
-  if(digitalRead(E3)==HIGH){
-    ins[2]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E4)==HIGH){
-    ins[3]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E5)==HIGH){
-    ins[4]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E6)==HIGH){
-    ins[5]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E7)==HIGH){
-    ins[6]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E8)==HIGH){
-    ins[7]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E9)==HIGH){
-    ins[8]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E10)==HIGH){
-    ins[9]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E11)==HIGH){
-    ins[10]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-  if(digitalRead(E12)==HIGH){
-    ins[11]=1;
-    FLAG_RECEIVE=true;
-  }
-    
-
-  if(!FLAG_ESCLUSA && FLAG_RECEIVE){
-    modoComun();
-  }
+  
 
 }
