@@ -8,6 +8,8 @@ int INPUTS_ENABLE = [];
 
 boolean FLAG_ESCLUSA = false;
 boolean FLAG_RECEIVE = false;
+boolean FLAG_BT = false;
+char STATE_BT;
 
 void isr_esclusa(){
   FLAG_ESCLUSA = !FLAG_ESCLUSA; //Pongo el flag de esclusa prendida o apagada en el opuesto, por defecto empiezo el programa con esclusa apagada
@@ -17,7 +19,8 @@ void isr_cierre(){
   timer_cierre();//Empiezo timer del cierre de las puertas.
 }
 void setup() {
-   Serial.begin(9600); 
+   Serial.begin(9600);
+   Serial1.begin(9600); 
    pinMode(E1,INPUT);
    pinMode(E2,INPUT);
    pinMode(E3,INPUT);
@@ -80,11 +83,16 @@ void loop() {
         FLAG_RECEIVE=true;
         j++;
       }
-    }    
+    }
+    if(Serial1.available()>0){
+      STATE_BT = Serial1.read();        
+    }
 /*----------------- Llamar funciones auxiliares -----------------*/
     if(!FLAG_ESCLUSA && FLAG_RECEIVE) mode_no_esclusa();
     else if(FLAG_ESCLUSA && FLAG_RECEIVE) mode_esclusa();
-    
+    if(STATE_BT!=0){
+      read_BT()
+    }
   }
   
 
