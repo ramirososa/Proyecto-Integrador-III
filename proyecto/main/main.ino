@@ -13,8 +13,8 @@ bool FLAG_SENSOR = false;
 bool FLAG_BT = false;
 bool FLAG_ETH = false;
 
-char STATE_ETH;
-char STATE_BT;
+char READ_ETH;
+char READ_BT;
 char STATE;
 
 //Texto 
@@ -70,9 +70,8 @@ void setup() {
 //POST
 void mode_no_esclusa(){
   int i=0;
-  while(i<(sizeof(INPUTS_ENABLE)/sizeof(int)){
-    digitalWrite(OUTPUTS_ENABLE[i],HIGH)    //WARNING! revisar esto, no me importa saber que pines se prendiero, quiero saber cuales voy a prenderrr
-  }
+  if(FLAG_SENSOR) sensor();
+  if(FLAG_STATE || FLAG_BT || FLAG_ETH) change_state();
 }
 
 void mode_esclusa(){
@@ -80,11 +79,10 @@ void mode_esclusa(){
   
 }
 // A que le damos prioridad si llegan las tres juntas el BT el ETH o un btn??
-void change_state(){
+void ethernet(){
   bool need_out=true
   int pinout;
-  if(FLAG_BT){
-    switch(STATE_BT){
+    switch(STATE_ETH){
       case OFF:
         STATE = OFF;
         pinout = PINOUT_OUTPUTS[x];
@@ -114,28 +112,43 @@ void change_state(){
         pinout = PINOUT_OUTPUTS[x];
         need_out=false;
       break;      
-    }
-  }  
-  if(FLAG_ETH){
-    
-  }
-  if(FLAG_STATE){
-    
-  }
   output_cs(pinout, need_out);
 }
 
+void bluetooth(){
+  if(STATE_BT==ESCLUSA_BT) FLAG_ESCLUSA = true;
+  else if(STATE_BT==NOESCLUSA_BT) FLAG_ESCLUSA = false;
+  else if(STATE_BT<x STATE_BT>y){}
+  else Serial.println("RECIBI ESTA BASURA DEL BT " + STATE_BT);
+}
 
-
+//Recibo el flag en true si tengo que escribir un low, se hace solo para el caso del pin....
+void pulse(int pin, bool flag){
+  if(!flag){
+    digitalWrite(pin,HIGH);
+    delay(50);
+    digitalWrite(pin,LOW);
+  }
+  else{
+    digitalWrite(pin,LOW);
+    delay(50);
+    digitalWrite(pin,HIGH);
+  }
+}
 
 void output_cs(int pin, bool flag){
   //PUBLISH DEL ESTADO por bt y eth, transmitir a slave??
   
 }
 
-void output_sens(int pin){
-  
+void sensor(){
+  for(int i=2; i<8; i++){
+    if(INPUTS_ENABLE[i]==1) pulso(PINOUT_OUTPUTS[i-2],false);
+  }
 }
+
+
+
 
 void loop() {
  
@@ -154,21 +167,26 @@ void loop() {
         INPUTS_ENABLE[i]=1;
         FLAG_RECEIVE=true;
         i++;
-        if(i>1 && i<8){
-          FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.  
-        }
+        if(i>1 && i<8) FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.
       }
     }
     if(Serial2.available()>0){
-      STATE_BT = Serial2.read();
+      READ_BT = Serial2.read();
       FLAG_BT = true;      
+    }
+    if(eth){
+      READ_ETH = ;
+      FLAG_ETH = ;
     }
     
 /*----------------- Llamar funciones auxiliares -----------------*/
-    if(FLAG_SENSOR) sensor();
-    if(FLAG_STATE || FLAG_BT || FLAG_ETH) change_state();
-    
-    
+    if(FLAG_SENSOR){
+      if(FLAG_ESCLUSA) mode_esclusa();
+      else mode_noesclusa();
+    }
+    if(FLAG_ETH) ethernet();
+    if(FLAG_BT) bluetooth();
+    if()
   }
   
 
