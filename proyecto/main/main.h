@@ -2,21 +2,19 @@
 //ALL OF THE LIBRARIES
 #include <string.h>;
 
-
-
 //ALL OF THE OUTPUTS
-#define S1 1;
-#define S2 1;
-#define S3 1;
-#define S4 1;
-#define S5 1;
-#define S6 1;
-#define S7 1;
-#define S8 1;
-#define S9 1;
-#define S10 1;
-#define S11 1;
-#define S12 1;
+#define S1 22;
+#define S2 2;
+#define S3 3;
+#define S4 4;
+#define S5 5;
+#define S6 6;
+#define S7 7;
+#define S8 8;
+#define S9 9;
+#define S10 10;
+#define S11 11;
+#define S12 12;
 
 //ALL OF THE INPUTS
 #define E1 1;
@@ -33,3 +31,35 @@
 #define E12 1;
 #define P1 1; //Tiene que ser pin de interrupt.
 #define P2 1; //Tiene que ser pin de interrupt
+
+
+/*    switch(STATE_ETH){
+      case OFF:
+        STATE = OFF;
+        pinout = PINOUT_OUTPUTS[x];
+      break;
+      case AUTOMATIC:
+        STATE = AUTOMATIC;
+        pinout = PINOUT_OUTPUTS[x];
+      break;
+      case ONLYLEAVE:
+        STATE = ONLYLEAVE;
+        pinout = PINOUT_OUTPUTS[10];
+      break;
+      case OPEN:
+        STATE = OPEN;
+        pinout = PINOUT_OUTPUTS[9];
+      break;
+      case NIGHT:
+        STATE = NIGHT;
+        pinout = PINOUT_OUTPUTS[8];
+      break;
+      case PANIC:
+        STATE = PANIC;
+        pinout = PINOUT_OUTPUTS[7];
+      break;
+      case ESCLUSA:
+        STATE = ESCLUSA;
+        pinout = PINOUT_OUTPUTS[x];
+        need_out=false;
+      break;   */

@@ -1,5 +1,5 @@
 /*ARCHIVO MAIN DEL PROYECTO*/
-#include main.h
+#include <main.h>
 
 const int PINOUT_INPUTS = [E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12];
 const int PINOUT_OUTPUTS = [S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12];
@@ -13,6 +13,12 @@ bool FLAG_SENSOR = false;
 bool FLAG_BT = false;
 bool FLAG_ETH = false;
 
+
+
+char ESCLUSA_BT;
+char NOESCLUSA_BT;
+char ESCLUSA_ETH;
+char NOESCLUSA_ETH;
 char READ_ETH;
 char READ_BT;
 char STATE;
@@ -80,39 +86,11 @@ void mode_esclusa(){
 }
 // A que le damos prioridad si llegan las tres juntas el BT el ETH o un btn??
 void ethernet(){
-  bool need_out=true
-  int pinout;
-    switch(STATE_ETH){
-      case OFF:
-        STATE = OFF;
-        pinout = PINOUT_OUTPUTS[x];
-      break;
-      case AUTOMATIC:
-        STATE = AUTOMATIC;
-        pinout = PINOUT_OUTPUTS[x];
-      break;
-      case ONLYLEAVE:
-        STATE = ONLYLEAVE;
-        pinout = PINOUT_OUTPUTS[10];
-      break;
-      case OPEN:
-        STATE = OPEN;
-        pinout = PINOUT_OUTPUTS[9];
-      break;
-      case NIGHT:
-        STATE = NIGHT;
-        pinout = PINOUT_OUTPUTS[8];
-      break;
-      case PANIC:
-        STATE = PANIC;
-        pinout = PINOUT_OUTPUTS[7];
-      break;
-      case ESCLUSA:
-        STATE = ESCLUSA;
-        pinout = PINOUT_OUTPUTS[x];
-        need_out=false;
-      break;      
-  output_cs(pinout, need_out);
+  if(STATE_ETH==ESCLUSA_ETH) FLAG_ESCLUSA = true;
+  else if(STATE_ETH==NOESCLUSA_ETH) FLAG_ESCLUSA = false;
+  else if(STATE_ETH<x STATE_ETH>y){}
+  else Serial.println("RECIBI ESTA BASURA DEL BT " + STATE_ETH);
+
 }
 
 void bluetooth(){
