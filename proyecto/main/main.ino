@@ -121,7 +121,7 @@ void output_cs(int pin, bool flag){
 
 void sensor(){
   for(int i=2; i<8; i++){
-    if(INPUTS_ENABLE[i]==1) pulso(PINOUT_OUTPUTS[i-2],false);
+    if(INPUTS_ENABLE[i]==1) pulse(PINOUT_OUTPUTS[i-2],false);
   }
 }
 
