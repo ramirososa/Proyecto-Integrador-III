@@ -3,7 +3,7 @@
 
 const int PINOUT_INPUTS = [E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12];
 const int PINOUT_OUTPUTS = [S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12];
-int INPUTS_ENABLE = [1,0,0,0,0,0,0,0,0,0,0,0];
+int INPUTS_SENSOR = [0,0,0,0,0,0];
 
 // Hacer una estructura con por un lado el numero de pines y por otro lado si el pin se prendio.
 
@@ -40,6 +40,7 @@ void isr_esclusa(){
 void isr_cierre(){
   timer_cierre();//Empiezo timer del cierre de las puertas.
 }
+
 void setup() {
    Serial.begin(9600);
    Serial1.begin(9600); 
@@ -55,6 +56,8 @@ void setup() {
    pinMode(E10,INPUT);
    pinMode(E11,INPUT);
    pinMode(E12,INPUT);
+   pinMode(P1,INPUT);
+   pinMode(P2,INPUT);
    pinMode(S1,OUTPUT);
    pinMode(S2,OUTPUT);
    pinMode(S3,OUTPUT);
@@ -68,7 +71,9 @@ void setup() {
    pinMode(S11,OUTPUT);
    pinMode(S12,OUTPUT);
    attachInterrupt(digitalPinToInterrupt(P1),isr_cierre, RISING);
-   attachInterrupt(digitalPinToInterrupt(P2),isr_esclusa, RISING);  
+   attachInterrupt(digitalPinToInterrupt(P2),isr_esclusa, RISING);
+   attachInterrupt(digitalPinToInterrupt(E11),isr_, RISING);
+   attachInterrupt(digitalPinToInterrupt(E12),isr_, RISING);  
 }
 
 //Que hago si tengo que poner un bajo? en E1 por ejemplo..
@@ -130,24 +135,31 @@ void sensor(){
 
 void loop() {
  
-  INPUTS_ENABLE = [1,0,0,0,0,0,0,0,0,0,0,0];
-  
+  INPUTS_SENSOR = [0,0,0,0,0,0];
+  int i;
+  int j;
   while(1){
 /*----------------- Analisis de flancos -----------------*/
-    int i=0;
-    if(digitalRead(PINOUT_INPUTS[i])==LOW){
-        INPUTS_ENABLE[i]=0;
-        FLAG_RECEIVE=true;
-        i++;
-      }
-    while(i<12){
+    i=0;
+    if(digitalRead(PINOUT_INPUTS[i])==LOW)FLAG_ABIERTO=true;
+    if(digitalRead(PINOUT_INPUTS[i])==HIGH)FLAG_ABIERTO=false;
+    i++;
+    if(digitalRead(PINOUT_INPUTS[i])==HIGH)requiere_averia();
+    i++;
+    j=0;
+    while(i<9){
       if(digitalRead(PINOUT_INPUTS[i])==HIGH){
-        INPUTS_ENABLE[i]=1;
-        FLAG_RECEIVE=true;
-        i++;
-        if(i>1 && i<8) FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.
+        INPUTS_SENSOR[j]=1;
+        FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.
       }
+      j++;
+      i++;
     }
+    if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_externa();
+    i++;
+    if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_interna();
+
+/*----------------- Analisis Perifericos -----------------*/
     if(Serial2.available()>0){
       READ_BT = Serial2.read();
       FLAG_BT = true;      
@@ -164,7 +176,6 @@ void loop() {
     }
     if(FLAG_ETH) ethernet();
     if(FLAG_BT) bluetooth();
-    if()
   }
   
 
