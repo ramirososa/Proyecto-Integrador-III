@@ -1,18 +1,18 @@
 /*ARCHIVO MAIN DEL PROYECTO*/
-#include <main.h>
+#include "main.h"
 
-const int PINOUT_INPUTS = [E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12];
-const int PINOUT_OUTPUTS = [S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12];
-int INPUTS_SENSOR = [0,0,0,0,0,0];
+const int PINOUT_INPUTS[] = {E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12};
+const int PINOUT_OUTPUTS[] = {S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12};
+int INPUTS_SENSOR[] = {0,0,0,0,0,0};
 
 // Hacer una estructura con por un lado el numero de pines y por otro lado si el pin se prendio.
 
 bool FLAG_ESCLUSA = false;
-bool FLAG_RECEIVE = false;
+bool FLAG_STATE = false;
 bool FLAG_SENSOR = false;
 bool FLAG_BT = false;
 bool FLAG_ETH = false;
-
+bool FLAG_ABIERTO=false;
 
 
 char ESCLUSA_BT;
@@ -24,21 +24,38 @@ char READ_BT;
 char STATE;
 
 //Texto 
-const char[] OFF = "APAGADA";
-const char[] AUTOMATIC = "AUTOMATICA";
-const char[] ONLYLEAVE = "SOLOSALIR";
-const char[] OPEN = "ABIERTA";
-const char[] NIGHT = "NOCHE";
-const char[] PANIC = "PANICO";
-const char[] ESCLUSA = "ESCLUSA"
-
+String OFF = "APAGADA";
+String AUTOMATIC = "AUTOMATICA";
+String ONLYLEAVE = "SOLOSALIR";
+String OPEN = "ABIERTA";
+String NIGHT = "NOCHE";
+String PANIC = "PANICO";
+String ESCLUSA = "ESCLUSA";
+String LAST_STATE;
+String command;
 
 void isr_esclusa(){
   FLAG_ESCLUSA = !FLAG_ESCLUSA; //Pongo el flag de esclusa prendida o apagada en el opuesto, por defecto empiezo el programa con esclusa apagada
+  if(FLAG_ESCLUSA){
+    STATE=ESCLUSA;
+    digitalWrite(S7,LOW);//Apago el DPS si estoy en modo esclusa
+  }
+  else{
+    STATE=AUTOMATIC;
+    digitalWrite(S7,HIGH);//Prendo el DPS si estoy en modo no esclusa?
+  }
+}
+
+void isr_panico(){
+  LAST_STATE=STATE;
+  STATE=PANIC;
+  digitalWrite(S10,HIGH);
+  
+  //Mandamos por RS a slave que mande salida S1 prendida indef. chequear como se apaga modo panico.
 }
 
 void isr_cierre(){
-  timer_cierre();//Empiezo timer del cierre de las puertas.
+  //timer_cierre();//Empiezo timer del cierre de las puertas.
 }
 
 void setup() {
@@ -72,8 +89,8 @@ void setup() {
    pinMode(S12,OUTPUT);
    attachInterrupt(digitalPinToInterrupt(P1),isr_cierre, RISING);
    attachInterrupt(digitalPinToInterrupt(P2),isr_esclusa, RISING);
-   attachInterrupt(digitalPinToInterrupt(E11),isr_, RISING);
-   attachInterrupt(digitalPinToInterrupt(E12),isr_, RISING);  
+   attachInterrupt(digitalPinToInterrupt(E11),isr_abrir_interior, RISING);
+   attachInterrupt(digitalPinToInterrupt(E12),isr_panico, RISING);  
 }
 
 //Que hago si tengo que poner un bajo? en E1 por ejemplo..
@@ -85,62 +102,78 @@ void mode_no_esclusa(){
   if(FLAG_STATE || FLAG_BT || FLAG_ETH) change_state();
 }
 
+void change_state(){
+  
+}
+
 void mode_esclusa(){
   
   
 }
 // A que le damos prioridad si llegan las tres juntas el BT el ETH o un btn??
 void ethernet(){
-  if(STATE_ETH==ESCLUSA_ETH) FLAG_ESCLUSA = true;
-  else if(STATE_ETH==NOESCLUSA_ETH) FLAG_ESCLUSA = false;
-  else if(STATE_ETH<x STATE_ETH>y){}
-  else Serial.println("RECIBI ESTA BASURA DEL BT " + STATE_ETH);
-
+  if(READ_ETH==ESCLUSA_ETH) FLAG_ESCLUSA = true;
+  else if(READ_ETH==NOESCLUSA_ETH) FLAG_ESCLUSA = false;
+//  else if(READ_ETH<x STATE_ETH>y){}
+  else Serial.println("RECIBI ESTA BASURA DEL BT " + READ_ETH);
+        Serial.println("Entre a serial eth");
 }
 
 void bluetooth(){
-  if(STATE_BT==ESCLUSA_BT) FLAG_ESCLUSA = true;
-  else if(STATE_BT==NOESCLUSA_BT) FLAG_ESCLUSA = false;
-  else if(STATE_BT<x STATE_BT>y){}
-  else Serial.println("RECIBI ESTA BASURA DEL BT " + STATE_BT);
+  if(READ_BT==ESCLUSA_BT) FLAG_ESCLUSA = true;
+  else if(READ_BT==NOESCLUSA_BT) FLAG_ESCLUSA = false;
+//  else if(READ_BT<x STATE_BT>y){}
+  else Serial.println("RECIBI ESTA BASURA DEL BT " + READ_BT);
+        Serial.println("Entre a serial bt");
 }
 
 //Recibo el flag en true si tengo que escribir un low, se hace solo para el caso del pin....
 void pulse(int pin, bool flag){
   if(!flag){
-    digitalWrite(pin,HIGH);
-    delay(50);
+    c
+    delay(3000);
     digitalWrite(pin,LOW);
   }
   else{
     digitalWrite(pin,LOW);
-    delay(50);
+    delay(1000);
     digitalWrite(pin,HIGH);
   }
 }
 
-void output_cs(int pin, bool flag){
-  //PUBLISH DEL ESTADO por bt y eth, transmitir a slave??
-  
-}
-
 void sensor(){
-  for(int i=2; i<8; i++){
-    if(INPUTS_ENABLE[i]==1) pulse(PINOUT_OUTPUTS[i-2],false);
+  for(int i=0; i<6; i++){
+    if(INPUTS_SENSOR[i]==1) pulse(PINOUT_OUTPUTS[i],false);//El problema que tenemos con este array es que sillegan 2 juntos en el mismo pull se va a quedar con el ultimo en la lista y no el ultimo que registra.
   }
+  FLAG_SENSOR=false;
 }
 
+void requiere_averia(){
+        Serial.println("Requiere averia");
+        //reproducir un audio
+}
 
+void rfid_externa(){
+        Serial.println("control ecceso externo");
+        if(STATE==NIGHT){
+          STATE=AUTOMATIC;
+          FLAG_ESCLUSA=false;//si estoy en modo noche, y leo el tag de afuera, pongo las puertas en modo automatico por defecto y entro,o en modo esclusa?
+        }
+}
+
+void rfid_interna(){
+        Serial.println("control acceso interno");
+}
 
 
 void loop() {
- 
-  INPUTS_SENSOR = [0,0,0,0,0,0];
   int i;
   int j;
   while(1){
-/*----------------- Analisis de flancos -----------------*/
+    for(int f=0;f<6;f++)INPUTS_SENSOR[f]=0;
     i=0;
+/*----------------- Analisis de flancos -----------------*/
+/*  i=0;
     if(digitalRead(PINOUT_INPUTS[i])==LOW)FLAG_ABIERTO=true;
     if(digitalRead(PINOUT_INPUTS[i])==HIGH)FLAG_ABIERTO=false;
     i++;
@@ -158,25 +191,48 @@ void loop() {
     if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_externa();
     i++;
     if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_interna();
-
+*/
+    if(Serial.available()){
+      command = Serial.readStringUntil('\n');
+      i=0;
+      if(command.equals("1"))FLAG_ABIERTO=true;
+      if(command.equals("2"))requiere_averia();
+      j=0;
+      String prueba[]={"3","4","5","6","7","8"};
+      while(i<9){
+        if(command.equals(prueba[i])){
+          INPUTS_SENSOR[j]=1;
+          FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.
+        }
+        j++;
+        i++;
+      }
+      if(command.equals("9"))rfid_externa();
+      if(command.equals("10"))rfid_interna();
+      if(STATE==PANIC){
+        if(command.equals("12")){//recibo un lowww
+          STATE=LAST_STATE;
+          digitalWrite(S10,LOW);
+        }
+      }
+    }
 /*----------------- Analisis Perifericos -----------------*/
     if(Serial2.available()>0){
       READ_BT = Serial2.read();
-      FLAG_BT = true;      
+      FLAG_BT = true;
+      Serial.println("Entre a serial 2");      
     }
-    if(eth){
-      READ_ETH = ;
-      FLAG_ETH = ;
-    }
+    /*if(eth){
+      //READ_ETH = ;
+      //FLAG_ETH = ;
+    }*/
     
 /*----------------- Llamar funciones auxiliares -----------------*/
     if(FLAG_SENSOR){
       if(FLAG_ESCLUSA) mode_esclusa();
-      else mode_noesclusa();
+      else mode_no_esclusa();
     }
     if(FLAG_ETH) ethernet();
     if(FLAG_BT) bluetooth();
   }
-  
-
 }

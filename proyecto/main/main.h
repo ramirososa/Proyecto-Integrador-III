@@ -3,34 +3,34 @@
 #include <string.h>;
 
 //ALL OF THE OUTPUTS
-#define S1 22;
-#define S2 2;
-#define S3 3;
-#define S4 4;
-#define S5 5;
-#define S6 6;
-#define S7 7;
-#define S8 8;
-#define S9 9;
-#define S10 10;
-#define S11 11;
-#define S12 12;
+#define S1 22
+#define S2 2
+#define S3 3
+#define S4 4
+#define S5 5
+#define S6 6
+#define S7 7
+#define S8 8
+#define S9 9
+#define S10 10
+#define S11 11
+#define S12 12
 
 //ALL OF THE INPUTS
-#define E1 1;
-#define E2 1;
-#define E3 1;
-#define E4 1;
-#define E5 1;
-#define E6 1;
-#define E7 1;
-#define E8 1;
-#define E9 1;
-#define E10 1;
-#define E11 1;
-#define E12 1;
-#define P1 1; //Tiene que ser pin de interrupt.
-#define P2 1; //Tiene que ser pin de interrupt
+#define E1 1
+#define E2 1
+#define E3 1
+#define E4 1
+#define E5 1
+#define E6 1
+#define E7 1
+#define E8 1
+#define E9 1
+#define E10 1
+#define E11 1
+#define E12 1
+#define P1 1 //Tiene que ser pin de interrupt.
+#define P2 1 //Tiene que ser pin de interrupt
 
 
 /*    switch(STATE_ETH){
