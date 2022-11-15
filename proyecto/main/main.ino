@@ -1,6 +1,10 @@
 /*ARCHIVO MAIN DEL PROYECTO*/
 #include "main.h"
 
+//LISTA CODIGOS SLAVE
+// Abrir puerta interior es 8.
+
+
 const int PINOUT_INPUTS[] = {E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12};
 const int PINOUT_OUTPUTS[] = {S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12};
 int INPUTS_SENSOR[] = {0,0,0,0,0,0};
@@ -24,13 +28,13 @@ char READ_BT;
 char STATE;
 
 //Texto 
-String OFF = "APAGADA";
-String AUTOMATIC = "AUTOMATICA";
-String ONLYLEAVE = "SOLOSALIR";
-String OPEN = "ABIERTA";
-String NIGHT = "NOCHE";
-String PANIC = "PANICO";
-String ESCLUSA = "ESCLUSA";
+String OFF = "APAGADA";  //1
+String AUTOMATIC = "AUTOMATICA";  //2
+String ONLYLEAVE = "SOLOSALIR"; //3
+String OPEN = "ABIERTA";  //4
+String NIGHT = "NOCHE"; //5
+String PANIC = "PANICO";  //6
+String ESCLUSA = "ESCLUSA"; //7
 String LAST_STATE;
 String command;
 
@@ -42,20 +46,27 @@ void isr_esclusa(){
   }
   else{
     STATE=AUTOMATIC;
-    digitalWrite(S7,HIGH);//Prendo el DPS si estoy en modo no esclusa?
+    digitalWrite(S7,HIGH);//Prendo el DPS si estoy en modo no esclusa
   }
+}
+
+
+//Hay que hacer lista de codigos para mandar por elrs al slave con cada modo y si abrimos la puerta.
+void abrir_puerta_int(){
+  //Mandamos por RS232 commando a slave para abrir la puerta.
+  Serial.write("8");
 }
 
 void isr_panico(){
   LAST_STATE=STATE;
   STATE=PANIC;
   digitalWrite(S10,HIGH);
-  
+  Serial.write("6");
   //Mandamos por RS a slave que mande salida S1 prendida indef. chequear como se apaga modo panico.
 }
 
 void isr_cierre(){
-  //timer_cierre();//Empiezo timer del cierre de las puertas.
+  //timer_cierre();//Empiezo timer del cierre de las puertas.cdo se cierra la puerta automatica se manda un modo noche..
 }
 
 void setup() {
@@ -98,6 +109,32 @@ void setup() {
 //POST
 void mode_no_esclusa(){
   int i=0;
+
+    if(Serial.available()){
+      command = Serial.readStringUntil('\n');
+      i=0;
+      if(command.equals("1"))FLAG_ABIERTO=true;
+      if(command.equals("2"))requiere_averia();
+      String prueba[]={"3","4","5","6","7","8"};
+      while(i<9){
+        if(command.equals(prueba[i])){
+          pulse(PINOUT_OUTPUTS[i-2],false);
+        }
+        i++;
+      }
+      if(command.equals("9"))rfid_externa();
+      if(command.equals("10"))rfid_interna();
+      if(command.equals("11"))abrir_puerta_int();
+      if(STATE==PANIC){
+        if(command.equals("12")){//recibo un lowww
+          STATE=LAST_STATE;
+          digitalWrite(S10,LOW);
+        }
+      }
+    }
+
+
+  
   if(FLAG_SENSOR) sensor();
   if(FLAG_STATE || FLAG_BT || FLAG_ETH) change_state();
 }
@@ -116,7 +153,7 @@ void ethernet(){
   else if(READ_ETH==NOESCLUSA_ETH) FLAG_ESCLUSA = false;
 //  else if(READ_ETH<x STATE_ETH>y){}
   else Serial.println("RECIBI ESTA BASURA DEL BT " + READ_ETH);
-        Serial.println("Entre a serial eth");
+  Serial.println("Entre a serial eth");
 }
 
 void bluetooth(){
@@ -124,7 +161,7 @@ void bluetooth(){
   else if(READ_BT==NOESCLUSA_BT) FLAG_ESCLUSA = false;
 //  else if(READ_BT<x STATE_BT>y){}
   else Serial.println("RECIBI ESTA BASURA DEL BT " + READ_BT);
-        Serial.println("Entre a serial bt");
+  Serial.println("Entre a serial bt");
 }
 
 //Recibo el flag en true si tengo que escribir un low, se hace solo para el caso del pin....
