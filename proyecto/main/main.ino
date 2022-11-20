@@ -109,11 +109,11 @@ void setup() {
 //POST
 void mode_no_esclusa(){
   int i=0;
-
+  while(STATE==AUTOMATIC){
     if(Serial.available()){
       command = Serial.readStringUntil('\n');
       i=0;
-      if(command.equals("1"))FLAG_ABIERTO=true;
+      if(command.equals("1"))FLAG_ABIERTO=true;//Acordrase que esto llega al reves.
       if(command.equals("2"))requiere_averia();
       String prueba[]={"3","4","5","6","7","8"};
       while(i<9){
@@ -132,15 +132,36 @@ void mode_no_esclusa(){
         }
       }
     }
-
-
+  if(FLAG_ETH) ethernet();
+  if(FLAG_BT) bluetooth();
   
-  if(FLAG_SENSOR) sensor();
-  if(FLAG_STATE || FLAG_BT || FLAG_ETH) change_state();
+  }
+  check_state()  
 }
 
-void change_state(){
+void check_state(){
+  switch(STATE){    
+    case AUTOMATIC:    
+   
+    break;  
+    case PANIC:    
   
+    break;
+    case ONLYLEAVE:    
+  
+    break; 
+    case :    
+  
+    break; 
+    case OPEN:    
+  
+    break; 
+    case NIGHT:    
+  
+    break;
+    case ESCLUSA:    
+  
+    break;   
 }
 
 void mode_esclusa(){
@@ -167,7 +188,7 @@ void bluetooth(){
 //Recibo el flag en true si tengo que escribir un low, se hace solo para el caso del pin....
 void pulse(int pin, bool flag){
   if(!flag){
-    c
+    digitalWrite(pin,HIGH);
     delay(3000);
     digitalWrite(pin,LOW);
   }
