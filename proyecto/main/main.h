@@ -1,6 +1,6 @@
 //THIS IS THE HEADER OF THE PROJECT ALL DE DEFINITIONS WILL BE INCLUDED HERE
 //ALL OF THE LIBRARIES
-#include <string.h>;
+#include <string.h>
 
 //ALL OF THE OUTPUTS
 #define S1 22
@@ -31,6 +31,21 @@
 #define E12 1
 #define P1 1 //Tiene que ser pin de interrupt.
 #define P2 1 //Tiene que ser pin de interrupt
+
+void check_state();
+void abrir_puerta_int();
+//int callback(char*, byte*, unsigned int);
+void requiere_averia();
+void manejar_puerta(int);
+void rfid_externa_e();
+void rfid_interna_e();
+void check_peripherals();
+void ethernet();
+void bluetooth();
+void slave_receive();
+void mode_no_esclusa();
+void mode_esclusa();
+void mode_panic();
 
 
 /*    switch(STATE_ETH){
