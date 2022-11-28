@@ -32,6 +32,39 @@
 #define P1 1 //Tiene que ser pin de interrupt.
 #define P2 1 //Tiene que ser pin de interrupt
 
+
+/*PINS REALES
+//ALL OF THE OUTPUTS
+#define S1 28
+#define S2 24
+#define S3 32
+#define S4 37
+#define S5 27
+#define S6 29
+#define S7 36
+#define S8 33
+#define S9 26
+#define S10 40
+#define S11 41
+#define S12 39
+
+//ALL OF THE INPUTS
+#define E1 22
+#define E2 25
+#define E3 23
+#define E4 8
+#define E5 4
+#define E6 9
+#define E7 5
+#define E8 7
+#define E9 13
+#define E10 12
+#define E11 20
+#define E12 2
+#define P1 3 //Tiene que ser pin de interrupt.
+#define P2 21 //Tiene que ser pin de interrupt
+*/
+
 void check_state();
 void abrir_puerta_int();
 //int callback(char*, byte*, unsigned int);
@@ -46,7 +79,9 @@ void slave_receive();
 void mode_no_esclusa();
 void mode_esclusa();
 void mode_panic();
-
+void slave_send(char);
+void pulse(char,bool);
+void mode_night(bool);
 
 /*    switch(STATE_ETH){
       case OFF:
