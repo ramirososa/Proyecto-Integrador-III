@@ -83,6 +83,26 @@ void slave_send(char);
 void pulse(char,bool);
 void mode_night(bool);
 
+ /*  i=0;
+      if(digitalRead(PINOUT_INPUTS[i])==LOW)FLAG_ABIERTO=true;
+      if(digitalRead(PINOUT_INPUTS[i])==HIGH)FLAG_ABIERTO=false;
+      i++;
+      if(digitalRead(PINOUT_INPUTS[i])==HIGH)requiere_averia();
+      i++;
+      j=0;
+      while(i<9){
+      if(digitalRead(PINOUT_INPUTS[i])==HIGH){
+      INPUTS_SENSOR[j]=1;
+      FLAG_SENSOR = true;//levanto flag para chequear que hago con el sensor.
+    }
+    j++;
+    i++;
+  }
+  if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_externa();
+  i++;
+  if(digitalRead(PINOUT_INPUTS[i])==HIGH)rfid_interna();
+  */
+
 /*    switch(STATE_ETH){
       case OFF:
         STATE = OFF;
