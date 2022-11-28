@@ -347,6 +347,8 @@ void mode_only_leave() {
     command = Serial.readStringUntil('\n');
     if (command.equals("9")) {
       flag = false;
+      pulse(PINOUT_OUTPUTS[11], false);
+      pulse(PINOUT_OUTPUTS[9], false);
     }
   }
   digitalWrite(S11, LOW);
