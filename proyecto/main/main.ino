@@ -1,44 +1,47 @@
+#include <SPI.h>
+#include <DFPlayer_Mini_Mp3.h>
+#include <UIPEthernet.h>
+#include <PubSubClient.h>
+#include <string.h>
 //ALL OF THE OUTPUTS
-#define S1 22
-#define S2 2
-#define S3 3
-#define S4 4
-#define S5 5
-#define S6 6
-#define S7 7
-#define S8 8
-#define S9 9
-#define S10 10
-#define S11 11
-#define S12 12
+#define S1 28
+#define S2 24
+#define S3 32
+#define S4 37
+#define S5 27
+#define S6 29
+#define S7 36
+#define S8 33
+#define S9 26
+#define S10 40
+#define S11 41
+#define S12 39
 
 //ALL OF THE INPUTS
-#define E1 1
-#define E2 1
-#define E3 1
-#define E4 1
-#define E5 1
-#define E6 1
-#define E7 1
-#define E8 1
-#define E9 1
-#define E10 1
-#define E11 1
-#define E12 1
-#define P1 1 //Tiene que ser pin de interrupt.
-#define P2 1 //Tiene que ser pin de interrupt
+#define E1 22
+#define E2 25
+#define E3 23
+#define E4 8
+#define E5 4
+#define E6 9
+#define E7 5
+#define E8 7
+#define E9 13
+#define E10 12
+#define E11 20
+#define E12 2
+#define P1 3 //Tiene que ser pin de interrupt.
+#define P2 21 //Tiene que ser pin de interrupt
 
 void check_state();
 void abrir_puerta_int();
-//int callback(char*, byte*, unsigned int);
+int callback(char*, byte*, unsigned int);
 void requiere_averia();
 void manejar_puerta(int);
-//void rfid_externa_e();
-//void rfid_interna_e();
-//void check_peripherals();
-void ethernet();
+void rfid_externa_e();
+void rfid_interna_e();
 void bluetooth();
-//void slave_receive();
+void slave_receive();
 void mode_no_esclusa();
 void mode_esclusa();
 void mode_panic();
@@ -70,7 +73,29 @@ char NOESCLUSA_ETH;
 char READ_ETH;
 char READ_BT;
 char READ_SLAVE='0';
+// ETHERNET
 
+// Update these with values suitable for your network.
+byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
+IPAddress ip(192,168,1,25);
+IPAddress myDns(192,168,1,1);
+IPAddress broker(192,168,17,106);
+
+const char* mqtt_server = "demo.thingsboard.io";    // servidor de la aplicacion IoT
+const char* token = "I5O29Aj1nla0WptymuX9";         // token de la aplicacion IoT
+
+// Connection objects
+EthernetClient ethClient;
+PubSubClient client(ethClient);
+
+//buffer sizes and messages
+#define MSG_BUFFER_SIZE  (50)
+char msg[MSG_BUFFER_SIZE];
+char msg2[MSG_BUFFER_SIZE];
+char msg3[MSG_BUFFER_SIZE];
+
+
+// FIN ETH
 
 //Texto
 
@@ -84,19 +109,155 @@ String ESCLUSA = "ESCLUSA"; //7
 String LAST_STATE;
 String command;
 String STATE = AUTOMATIC;
-void setup() {
-  // put your setup code here, to run once:
-    Serial.begin(9600);
-    Serial3.begin(9600);
-    pinMode(13,OUTPUT);
-    digitalWrite(13,LOW);
+
+
+void bluetooth(){
+    if(READ_BT=='E'){
+      FLAG_ESCLUSA = true;
+      LAST_STATE = STATE;
+      STATE = AUTOMATIC;
+    }
+    else if(READ_BT=='A'){
+      FLAG_ESCLUSA = false;
+      LAST_STATE = STATE;
+      STATE = AUTOMATIC;
+    }
+    
+      else if(READ_BT<'9' &&  READ_BT>'0'){}
+    mp3_set_volume(parseInt(READ_BT));
+  }
+
+
+// ------------------ FUNCIONES WIFI -------------------- //
+
+//This method is called whenever a MQTT message arrives. We must be prepared for any type of incoming message.
+//We are subscribed to RPC Calls: v1/devices/me/rpc/request/+
+void callback(char* topic, byte* payload, unsigned int length) {
+
+  //log to console
+  //Serial.print("Message arrived [");
+  //Serial.print(topic);
+  //Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    //Serial.print((char)payload[i]);
+  }
+  //Serial.println();
+  if(payload[11]=='s') // llego un modo
+  {
+    char numero = payload[19];    // contiene el numero el del modo   noche = 1,auto = 2 , panico = 3 , esclusa = 4
+  if(numero == '1')
+  {// activo modo solo salir y le aviso al esclavo
+    STATE=ONLYLEAVE;
+    check_state();
+  
+  }
+  if(numero == '2')
+  {// activo modo automatico y le aviso al esclavo
+    STATE=AUTOMATIC;
+    check_state();
+  }
+  if(numero == '3')
+  {// activo modo panico y le aviso al esclavo
+    STATE=PANIC;
+    check_state();
+  }
+  if(numero == '4')
+  {// activo modo esclusa y le aviso al esclavo
+    STATE=ESCLUSA;
+    check_state();
+  }
+  }
+  else if(payload[11]=='V'){
+    // se cambia el volumen
+    mp3_set_volume(parseInt(payload[19])*10+parseInt(payload[20]));
+  }
+    
+    
+}
+}
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    //Serial.print("Attempting MQTT connection...");
+    if (client.connect("AbuEstasBien", token, token )) {
+      //if (client.connect("arduinoClient")) {
+      //Serial.println("connected");
+      // Once connected, subscribe to rpc topic
+      client.subscribe("v1/devices/me/rpc/request/+"); // suscripcion para recibir mensaje de ThngsBoard
+      //Serial.println("SUB");
+    } else {
+      //Serial.println("failed, rc=");
+      //Serial.println(client.state());
+      //Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(1000);
+    }
+  }
 }
 
 
-/--------------------------------- ESCLUSA ---------------------------------/
+
+
+void setup() {
+  // put your setup code here, to run once:
+    Serial.begin(9600);
+    Serial1.begin(9600);
+    Serial2.begin(9600);
+    Serial3.begin(9600);
+    pinMode(E1,INPUT);
+    pinMode(E2,INPUT);
+    pinMode(E3,INPUT);
+    pinMode(E,INPUT);
+    pinMode(E4,INPUT);
+    pinMode(E5,INPUT);
+    pinMode(E6,INPUT);
+    pinMode(E7,INPUT);
+    pinMode(E8,INPUT);
+    pinMode(E9,INPUT);
+    pinMode(E10,INPUT);
+    pinMode(E11,INPUT);
+    pinMode(E12,INPUT);
+    pinMode(P1,INPUT);
+    pinMode(P2,INPUT);
+    pinMode(S1,OUTPUT);
+    pinMode(S2,OUTPUT);
+    pinMode(S3,OUTPUT);
+    pinMode(S4,OUTPUT);
+    pinMode(S5,OUTPUT);
+    pinMode(S6,OUTPUT);
+    pinMode(S7,OUTPUT);
+    pinMode(S8,OUTPUT);
+    pinMode(S9,OUTPUT);
+    pinMode(S10,OUTPUT);
+    pinMode(S11,OUTPUT);
+    pinMode(S12,OUTPUT);
+
+    DFPlayerSerial3.begin(9600);
+   mp3_set_serial(DFPlayerSerial);
+   mp3_set_volume(15);
+    pinMode(13,OUTPUT); // Pin para DE y RE
+    digitalWrite(13,LOW);
+    pinMode(53,OUTPUT);
+    Ethernet.init(10);
+    Ethernet.begin(mac,ip);
+  // Allow the hardware to sort itself out
+    delay(5000);
+    ////Serial.println("Ethernet conectado sesu");
+    client.setServer(mqtt_server, 1883); //client.setServer(server,1883)
+    client.setCallback(callback);
+  //Serial.println("");
+  //Serial.println("Eth connected");
+  //Serial.println("IP address: ");
+  //Serial.println(Ethernet.localIP());
+}
+
+
+//--------------------------------- ESCLUSA ---------------------------------/
   void requiere_averia(){
-    Serial.println("Requiere averia");
+    //Serial.println("Requiere averia");
     //reproducir un audio
+    mp3_play(5);
+   delay(6000);
   }
 
 void abrir_puerta_int(){
@@ -107,14 +268,14 @@ void abrir_puerta_int(){
 
 void rfid_externa_e(){
   CLIENTE=false;
-  Serial.println("Esta por entrar un empleado");
+  //Serial.println("Esta por entrar un empleado");
 }
 void rfid_interna_e(){
   if(!FLAG_PUERTA_INTERNA && !FLAG_ABIERTO){
     if(FLAG_FLUJO){
       abrir_puerta_int();
       CLIENTE = true;
-      Serial.println("Empleado abre puerta interior");
+      //Serial.println("Empleado abre puerta interior");
     }
     else{
       if(!MANTENER_CERRADA){
@@ -139,63 +300,50 @@ void mode_esclusa(){
   
   pulse(PINOUT_OUTPUTS[11],false);
   digitalWrite(S7,LOW);//Apago el DPS si estoy en modo esclusa
-  Serial.println("Apago DPS");
+  //Serial.println("Apago DPS");
   int i=0;
-  Serial.println("Estoy en modo esclusa");
+  //Serial.println("Estoy en modo esclusa");
   while(STATE==ESCLUSA){
-    if(Serial.available()){
-      command = Serial.readStringUntil('\n');
       i=0;
-      if(command.equals("1")){
+      if(digitalRead(PINOUT_INPUTS[0])==LOW){
         FLAG_ABIERTO=true;//Acordrase que esto llega al reves.
         slave_send('4');
-        Serial.println("PUERTA EXTERIOR ABIERTA");
+        //Serial.println("PUERTA EXTERIOR ABIERTA");
       }
-      if(command.equals("1-")){
+      if(digitalRead(PINOUT_INPUTS[0])==HIGH){
         FLAG_ABIERTO=false; //Para avisar que mando el bajo
         slave_send('5');
-        Serial.println("PUERTA EXTERIOR CERRADA");
-      }
-      if(command.equals("2"))requiere_averia();
-      
-      if(command.equals("3")) manejar_puerta(1);
-      if(command.equals("4")) MANTENER_ABIERTA = true;
-      if(command.equals("4-")) MANTENER_ABIERTA = false;
-      if(command.equals("5")) manejar_puerta(2);
-      if(command.equals("6")) MANTENER_ABIERTA = true;
-      if(command.equals("6-")) MANTENER_ABIERTA = false;
-      if(command.equals("7")) MANTENER_CERRADA = true;
-      if(command.equals("7-")) MANTENER_CERRADA = false;
-      if(command.equals("8")) MANTENER_CERRADA = true;
-      if(command.equals("8-")) MANTENER_CERRADA = false;
-      
-      if(command.equals("9"))rfid_externa_e();
-      if(command.equals("10"))rfid_interna_e();
-
-      if(command.equals("ol"))STATE=ONLYLEAVE;
-      if(command.equals("pa"))STATE=PANIC;
-      if(command.equals("e"))STATE=ESCLUSA;
-      if(command.equals("a"))STATE=AUTOMATIC;
-      if(command.equals("11"))abrir_puerta_int();
+        //Serial.println("PUERTA EXTERIOR CERRADA");
       }
       
-      if(Serial3.available())
+      if(digitalRead(PINOUT_INPUTS[1])==HIGH)requiere_averia();
+      if(digitalRead(PINOUT_INPUTS[2])==HIGH)manejar_puerta(1);
+      if(digitalRead(PINOUT_INPUTS[3])==HIGH || PINOUT_INPUTS[5]==HIGH) MANTENER_ABIERTA = true;
+      if(digitalRead(PINOUT_INPUTS[3])==LOW || PINOUT_INPUTS[5]==LOW) MANTENER_ABIERTA = false;
+      if(digitalRead(PINOUT_INPUTS[4])==HIGH) manejar_puerta(2);
+      if(digitalRead(PINOUT_INPUTS[6])==HIGH || PINOUT_INPUTS[7]==HIGH) MANTENER_CERRADA = true;
+      if(digitalRead(PINOUT_INPUTS[6])==LOW || PINOUT_INPUTS[7]==LOW) MANTENER_CERRADA = false;
+      if(digitalRead(PINOUT_INPUTS[8])==HIGH) rfid_externa_e();
+      if(digitalRead(PINOUT_INPUTS[9])==HIGH) rfid_interna_e();
+      if(digitalRead(PINOUT_INPUTS[10])==HIGH) abrir_puerta_int();
+      if(Serial.available())
       {
-       READ_SLAVE=Serial3.read();
+       READ_SLAVE=Serial.read();
        if(READ_SLAVE>0 && READ_SLAVE < 'G'){
         delay(100);
         slave_receive();
         delay(200);
        }
-       
     }
+    if (!client.connected()) {
+           //Serial.print("no estoy conectado");
+           reconnect();
+    }
+    client.loop();
+
+    if(Serial2.available()>0)bluetooth();
   }
-    /*check_peripherals();
-    /*if(FLAG_ETH) ethernet();
-    if(FLAG_BT) bluetooth();
-    if(FLAG_SLAVE) slave_receive();
-    FLAG_ETH = FLAG_BT = FLAG_SLAVE = false;*/
-   check_state();
+    check_state();
 }
 
 void manejar_puerta(int mov){
@@ -209,7 +357,9 @@ void manejar_puerta(int mov){
                 pulse(PINOUT_OUTPUTS[11],false);
                 pulse(PINOUT_OUTPUTS[9],false);
                 FLAG_FLUJO=false;
-                Serial.println("Habia alguien en la esclusa y esta saliendo");
+                //Serial.println("Habia alguien en la esclusa y esta saliendo");
+                mp3_play(5);
+                delay(6000);
                 //REPRODUCIR AUDIO DE ADIOS, VUELVE PRONTO!
               }
             }
@@ -220,7 +370,7 @@ void manejar_puerta(int mov){
                 mode_night(true);
                 FLAG_ADENTRO=false;
                 slave_send('B');
-                Serial.println("Habia alguien en la esclusa y Cierro puerta exterior");
+                //Serial.println("Habia alguien en la esclusa y Cierro puerta exterior");
               }
             }
           }
@@ -235,7 +385,9 @@ void manejar_puerta(int mov){
             pulse(PINOUT_OUTPUTS[9],false);
             FLAG_FLUJO=true;
             slave_send('C');
-            Serial.println("Alguien entra por puerta exterior");
+            //Serial.println("Alguien entra por puerta exterior");
+            mp3_play(1);
+            delay(6000);
             //REPRODUCIR AUDIO DE BIENVENIDA
           }
         }
@@ -248,15 +400,17 @@ void manejar_puerta(int mov){
             slave_send('A');
             if(CLIENTE){
             //REPRODUCIR AUDIO: DIRIGETE AL TOTEM PARA PRESENTARTE AL LOCAL...
-              Serial.println("Cliente");
+            mp3_play(2);
+            delay(6000);
+              //Serial.println("Cliente");
             }else{
-              Serial.println("Empleado");
+              //Serial.println("Empleado");
             }
-            Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
+            //Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
           }
         }
         else{
-              Serial.println("EL sensor de seguridad capto una persona, o podemos cerrar.");
+              //Serial.println("EL sensor de seguridad capto una persona, o podemos cerrar.");
             }
       }
     }
@@ -265,31 +419,31 @@ void manejar_puerta(int mov){
 
 void slave_receive(){
 
-  Serial.println(READ_SLAVE);
+  //Serial.println(READ_SLAVE);
   
   if(READ_SLAVE=='A'){
     FLAG_ADENTRO = true;
-    Serial.println("Recibo por RS hay alguien adentro de la esclusa");
+    //Serial.println("Recibo por RS hay alguien adentro de la esclusa");
   }
   else if(READ_SLAVE=='B'){
     FLAG_ADENTRO=false;
-    Serial.println("Recibo por RS no hay nadie adentro de la esclusa");
+    //Serial.println("Recibo por RS no hay nadie adentro de la esclusa");
   }
   else if(READ_SLAVE=='C'){
     FLAG_FLUJO=true;
-    Serial.println("Recibo por RS que hay alguien entrando al local");
+    //Serial.println("Recibo por RS que hay alguien entrando al local");
   }
   else if(READ_SLAVE=='D'){
     FLAG_FLUJO=false;
-    Serial.println("Recibo por RS hay alguien saliendo del local");
+    //Serial.println("Recibo por RS hay alguien saliendo del local");
   }
   else if(READ_SLAVE=='E'){
     FLAG_PUERTA_INTERNA = true;
-    Serial.println("Recibo por RS que la puerta interna esta abierta");
+    //Serial.println("Recibo por RS que la puerta interna esta abierta");
   }
   else if(READ_SLAVE=='F'){
     FLAG_PUERTA_INTERNA = false;
-    Serial.println("Recibo por RS que la puerta interna esta cerrada");
+    //Serial.println("Recibo por RS que la puerta interna esta cerrada");
   }
 }
 
@@ -308,35 +462,28 @@ void slave_receive(){
   }
 
 void mode_no_esclusa(){
-  int i=0;
+  int i=2;
   digitalWrite(7,HIGH);//Prendo el DPS si estoy en modo no esclusa
-  Serial.println("Prendo DPS");
+  //Serial.println("Prendo DPS");
   //Destrabo la puerta mecanicamente si vengo desde el modo esclusa.
-  //pulse(PINOUT_OUTPUTS[11],false);
-  Serial.println("Estoy en modo automatico");
+  pulse(PINOUT_OUTPUTS[11],false);
+  //Serial.println("Estoy en modo automatico");
   while(STATE==AUTOMATIC){
-    if(Serial.available()){
-      command = Serial.readStringUntil('\n');
-      i=0;
-    //if(command.equals("2"))requiere_averia();
-      String prueba[]={"3","4","5","6","7","8"};
+      i=2;
+      if(digitalRead(PINOUT_INPUTS[1])==HIGH))requiere_averia();
       while(i<9){
-        if(command.equals(prueba[i])){
-         pulse(PINOUT_OUTPUTS[i],false);
+        if(digitalRead(PINOUT_INPUTS[i])==HIGH)){
+          pulse(PINOUT_OUTPUTS[i-2],false);
         }
         i++;
       }
-      if(command.equals("ol"))STATE=ONLYLEAVE;
-      if(command.equals("pa"))STATE=PANIC;
-      if(command.equals("e"))STATE=ESCLUSA;
-      if(command.equals("a"))STATE=AUTOMATIC;
-      
+    if (!client.connected()) {
+           //Serial.print("no estoy conectado");
+           reconnect();
     }
-    
-    /*check_peripherals();
-    if(FLAG_ETH) ethernet();
-    if(FLAG_BT) bluetooth();
-    FLAG_ETH = FLAG_BT = false;*/
+    client.loop();
+
+    if(Serial2.available()>0)bluetooth();
   }
   check_state();
 }
@@ -345,22 +492,22 @@ void mode_no_esclusa(){
 
 
 void mode_only_leave(){
-  Serial.println("Estoy en modo Solo Salir");
-  int i=4;
+  //Serial.println("Estoy en modo Solo Salir");
+
   bool flag=true;
   digitalWrite(S11,HIGH);
   while(flag){
-    command = Serial.readStringUntil('\n');
-    if(command.equals("9")){
+    if(digitalRead(PINOUT_INPUTS[8])==LOW){
       mode_night(true);
       flag=false;
     }
   }
     flag=true;
     while(flag){
-      command = Serial.readStringUntil('\n');
-      if(command.equals("9")){
+      if(digitalRead(PINOUT_INPUTS[8])==LOW){
         flag=false;
+        pulse(PINOUT_OUTPUTS[11], false);
+        pulse(PINOUT_OUTPUTS[9], false);
       }
     }
   digitalWrite(S11,LOW);  
@@ -370,19 +517,15 @@ void mode_only_leave(){
 }
 
 void mode_panic(){
-  Serial.println("Estoy en modo panico");
-  digitalWrite(S10,HIGH);
+  //Serial.println("Estoy en modo panico");
+  digitalWrite(S8,HIGH);
   //slave_send(6);
   while(STATE==PANIC){
     command = Serial.readStringUntil('\n');
-    if(command.equals("12")){//recibo un lowww
+    if(digitalRead(PINOUT_INPUTS[11])==LOW){//recibo un lowww
       STATE=LAST_STATE;
-      digitalWrite(S10,LOW);
+      digitalWrite(S8,LOW);
     }
-    if(command.equals("ol"))STATE=ONLYLEAVE;
-    if(command.equals("pa"))STATE=PANIC;
-    if(command.equals("e"))STATE=ESCLUSA;
-    if(command.equals("a"))STATE=AUTOMATIC;
   }
   check_state();
 }
@@ -391,9 +534,6 @@ void mode_panic(){
 void mode_night(bool externa){
   if(externa)pulse(PINOUT_OUTPUTS[8],false);
 }
-
-
-
 
 void check_state(){
   
@@ -417,28 +557,29 @@ void check_state(){
 
 void slave_send(char msg){
   digitalWrite(13,HIGH);
-  Serial3.write(msg);
+  Serial.write(msg);
   delay(100);
   digitalWrite(13,LOW);
-  Serial.println(msg);
+  //Serial.println(msg);
 }
 
 
 void loop() {
+    
     STATE = AUTOMATIC;
     LAST_STATE = AUTOMATIC;
     //Chequeo que la puerta este cerrada, sino la cierro.
-   /*if(PINOUT_INPUTS[0]==LOW){
+    if(PINOUT_INPUTS[0]==LOW){
       mode_night(true);
     }
-    //Me aseguro que cierre la puerta
-    /*while(PINOUT_INPUTS[0]==LOW){
-      delay(500);
-      mode_night(true);
-    }*/
     delay(10000);
     while(1){
-      Serial.println("void loop");
+      //Serial.println("void loop");
+       if (!client.connected()) {
+           //Serial.print("no estoy conectado");
+           reconnect();
+        }
+      client.loop();
       check_state();
     }
 }

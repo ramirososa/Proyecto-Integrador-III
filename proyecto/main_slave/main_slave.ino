@@ -3,30 +3,6 @@
 #include <string.h>
 
 //ALL OF THE OUTPUTS
-#define S1 22
-#define S2 2
-#define S3 3
-#define S4 4
-#define S5 5
-#define S6 6
-#define S7 7
-#define S8 8
-#define S9 9
-#define S10 10
-#define S11 11
-#define pinSerial 52
-//ALL OF THE INPUTS
-#define E1 1
-#define E2 1
-#define E3 1
-#define E4 1
-#define E5 1
-#define E6 1
-#define E7 1
-#define E8 1
-
-/*PINS REALES
-//ALL OF THE OUTPUTS
 #define S1 28
 #define S2 24
 #define S3 32
@@ -38,6 +14,7 @@
 #define S9 26
 #define S10 40
 #define S11 41
+#define S12 39
 
 //ALL OF THE INPUTS
 #define E1 22
@@ -48,8 +25,9 @@
 #define E6 9
 #define E7 5
 #define E8 7
-*/
 
+
+#define pinSerial 52
 
 void check_state();
 void abrir_puerta_int();
@@ -61,17 +39,12 @@ void mode_no_esclusa();
 void mode_esclusa();
 void mode_panic();
 
-
-
-
 const int PINOUT_INPUTS[] = {E1,E2,E3,E4,E5,E6,E7,E8};
 const int PINOUT_OUTPUTS[] = {S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11};
 
 bool FLAG_ESCLUSA = false;
 bool FLAG_STATE = false;
-bool FLAG_SENSOR = false;
-bool FLAG_BT = false;
-bool FLAG_ETH = false;
+
 bool FLAG_ABIERTO=false;
 bool FLAG_SLAVE=false;
 bool FLAG_PUERTA_INTERNA = false; //false esta cerrada, true esta abierta
@@ -81,12 +54,6 @@ bool MANTENER_ABIERTA = false;
 bool MANTENER_CERRADA = false;
 bool CLIENTE = true;
 
-char ESCLUSA_BT;
-char NOESCLUSA_BT;
-char ESCLUSA_ETH;
-char NOESCLUSA_ETH;
-char READ_ETH;
-char READ_BT;
 char READ_SLAVE='0';
 
 
@@ -106,9 +73,6 @@ String command;
 //--------------------------------- SETUP ---------------------------------/
 void setup() {
   Serial.begin(9600);
-  //Serial1.begin(9600);
- // Serial2.begin(9600);
-  Serial3.begin(9600);
   pinMode(E1,INPUT);
   pinMode(E2,INPUT);
   pinMode(E3,INPUT);
@@ -128,19 +92,23 @@ void setup() {
   pinMode(S9,OUTPUT);
   pinMode(S10,OUTPUT);
   pinMode(S11,OUTPUT);
+  pinMode(S11,OUTPUT);
+  pinMode(S12,OUTPUT);
   pinMode(pinSerial,OUTPUT);
   digitalWrite(pinSerial,LOW);
 }
 
 //--------------------------------- ESCLUSA ---------------------------------/
 
+void slave_send(char a){
+  digitalWrite(pinSerial,HIGH);
+  Serial.write(a);
+  delay(100);
+  digitalWrite(pinSerial,LOW);
+}
 void mode_esclusa(){
   //Aviso el cambio de modo por serial.
   //Destrabo la puerta mecanicamente con el siguiente pulso
-  //pulse(PINOUT_OUTPUTS[11],false);
-  Serial.println("Estoy en modo esclusa");
-  digitalWrite(S7,LOW);//Apago el DPS si estoy en modo esclusa
-  Serial.println("Apago DPS");
   FLAG_ABIERTO=false;
   FLAG_PUERTA_INTERNA = false; //false esta cerrada, true esta abierta
   FLAG_FLUJO = true; //true = entrada , false = salida
@@ -148,58 +116,55 @@ void mode_esclusa(){
   MANTENER_ABIERTA = false;
   MANTENER_CERRADA = false;
   CLIENTE = true;
-  int i=0;
   
+  pulse(PINOUT_OUTPUTS[11],false);
+  digitalWrite(S7,LOW);//Apago el DPS si estoy en modo esclusa
+  ////Serial.println("Apago DPS");
+  int i=0;
+  ////Serial.println("Estoy en modo esclusa");
   while(STATE==ESCLUSA){
-    if(Serial.available()){
-      command = Serial.readStringUntil('\n');
       i=0;
-      if(command.equals("1")){
+      if(digitalRead(PINOUT_INPUTS[0])==LOW){
         FLAG_ABIERTO=true;//Acordrase que esto llega al reves.
-        digitalWrite(pinSerial,HIGH);
-        Serial3.write('E');
-        delay(100);
-        digitalWrite(pinSerial,LOW);
-        Serial.println("PUERTA INTERIOR ABIERTA");
+        slave_send('E');
+        ////Serial.println("PUERTA EXTERIOR ABIERTA");
       }
-      if(command.equals("1-")){
+      if(digitalRead(PINOUT_INPUTS[0])==HIGH){
         FLAG_ABIERTO=false; //Para avisar que mando el bajo
-        digitalWrite(pinSerial,HIGH);
-        Serial3.write('F');
-        delay(150);
-        digitalWrite(pinSerial,LOW);
-        Serial.println("PUERTA INTERIOR CERRADA");
+        slave_send('F');
+        ////Serial.println("PUERTA EXTERIOR CERRADA");
       }
-      if(command.equals("2"))requiere_averia();
       
-      if(command.equals("3")) manejar_puerta(1);
-      if(command.equals("4")) MANTENER_ABIERTA = true;
-      if(command.equals("4-")) MANTENER_ABIERTA = false;
-      if(command.equals("5")) manejar_puerta(2);
-      if(command.equals("6")) MANTENER_ABIERTA = true;
-      if(command.equals("6-")) MANTENER_ABIERTA = false;
-      if(command.equals("7")) MANTENER_CERRADA = true;
-      if(command.equals("7-")) MANTENER_CERRADA = false;
-      if(command.equals("8")) MANTENER_CERRADA = true;
-      if(command.equals("8-")) MANTENER_CERRADA = false;
-    }
-    if(Serial3.available())
+      if(digitalRead(PINOUT_INPUTS[1])==HIGH)requiere_averia();
+      if(digitalRead(PINOUT_INPUTS[2])==HIGH)manejar_puerta(1);
+      if(digitalRead(PINOUT_INPUTS[3])==HIGH || PINOUT_INPUTS[5]==HIGH) MANTENER_ABIERTA = true;
+      if(digitalRead(PINOUT_INPUTS[3])==LOW || PINOUT_INPUTS[5]==LOW) MANTENER_ABIERTA = false;
+      if(digitalRead(PINOUT_INPUTS[4])==HIGH) manejar_puerta(2);
+      if(digitalRead(PINOUT_INPUTS[6])==HIGH || PINOUT_INPUTS[7]==HIGH) MANTENER_CERRADA = true;
+      if(digitalRead(PINOUT_INPUTS[6])==LOW || PINOUT_INPUTS[7]==LOW) MANTENER_CERRADA = false;
+
+      if(Serial.available())
       {
-       READ_SLAVE=Serial3.read();
-       master_receive();
-      }
+       READ_SLAVE=Serial.read();
+       if(READ_SLAVE>0 && READ_SLAVE < 'G'){
+        delay(100);
+        master_receive();
+        delay(200);
+       }
+    }
   }
+    check_state();
 }
 
 void manejar_puerta(int mov){
   //Puerta interna cerrada
-  Serial.println("manejando puerta");
-  Serial.println(FLAG_ADENTRO);
-  Serial.println(FLAG_PUERTA_INTERNA);
-  Serial.println(FLAG_FLUJO);
-  Serial.println(FLAG_ABIERTO);
-  Serial.println(MANTENER_ABIERTA);
-  Serial.println(MANTENER_CERRADA);
+  //Serial.println("manejando puerta");
+  //Serial.println(FLAG_ADENTRO);
+  //Serial.println(FLAG_PUERTA_INTERNA);
+  //Serial.println(FLAG_FLUJO);
+  //Serial.println(FLAG_ABIERTO);
+  //Serial.println(MANTENER_ABIERTA);
+  //Serial.println(MANTENER_CERRADA);
   if(!FLAG_ABIERTO){
     if(FLAG_ADENTRO){
       if(!FLAG_FLUJO){
@@ -209,7 +174,7 @@ void manejar_puerta(int mov){
                 pulse(PINOUT_OUTPUTS[11],false);
                 pulse(PINOUT_OUTPUTS[8],false);
                 FLAG_FLUJO=true;
-                Serial.println("Habia alguien en la esclusa y esta saliendo");
+                //Serial.println("Habia alguien en la esclusa y esta saliendo");
                 //REPRODUCIR AUDIO DE ADIOS, VUELVE PRONTO!
               }
             }
@@ -220,10 +185,10 @@ void manejar_puerta(int mov){
                 mode_night(true);
                 FLAG_ADENTRO=false;
                 digitalWrite(pinSerial,HIGH);
-                Serial3.write('D');
+                Serial.write('D');
                 delay(199);
                 digitalWrite(pinSerial,LOW);
-                Serial.println("Habia alguien en la esclusa y Cerro puerta exterior");
+                //Serial.println("Habia alguien en la esclusa y Cerro puerta exterior");
               }
             }
           }
@@ -239,10 +204,10 @@ void manejar_puerta(int mov){
             FLAG_FLUJO=false;
             digitalWrite(pinSerial,HIGH);
             delay(300);
-            Serial3.write('D');
+            Serial.write('D');
             delay(1000);
             digitalWrite(pinSerial,LOW);
-            Serial.println("Alguien entra por puerta exterior");
+            //Serial.println("Alguien entra por puerta exterior");
             //REPRODUCIR AUDIO DE BIENVENIDA
           }
         }
@@ -253,13 +218,13 @@ void manejar_puerta(int mov){
             mode_night(true);
             FLAG_ADENTRO=true;
             digitalWrite(pinSerial,HIGH);
-            Serial3.write('A');
+            Serial.write('A');
             delay(100);
             digitalWrite(pinSerial,LOW);
             if(CLIENTE){
             //REPRODUCIR AUDIO: DIRIGETE AL TOTEM PARA PRESENTARTE AL LOCAL...
             }
-            Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
+            //Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
           }
         }
       }
@@ -271,10 +236,10 @@ void manejar_puerta(int mov){
                 mode_night(true);
                 FLAG_ADENTRO=false;
                 digitalWrite(pinSerial,HIGH);
-                Serial3.write('B');
+                Serial.write('B');
                 delay(100);
                 digitalWrite(pinSerial,LOW);
-                Serial.println("Habia alguien en la esclusa y Cerro puerta Interior, modo noche");
+                //Serial.println("Habia alguien en la esclusa y Cerro puerta Interior, modo noche");
               }
             }
             else if(!MANTENER_ABIERTA && !FLAG_FLUJO)
@@ -283,10 +248,10 @@ void manejar_puerta(int mov){
                 mode_night(true);
                 FLAG_ADENTRO=true;
                 digitalWrite(pinSerial,HIGH);
-                Serial3.write('A');
+                Serial.write('A');
                 delay(100);
                 digitalWrite(pinSerial,LOW);
-                Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
+                //Serial.println("Entro alguien a la esclusa pero cerramos la puerta");
              }
             }
   }
@@ -294,7 +259,7 @@ void manejar_puerta(int mov){
 
 void master_receive(){
   if(READ_SLAVE>'0' && READ_SLAVE<'F'){
-  Serial.println(READ_SLAVE);
+  //Serial.println(READ_SLAVE);
   if(READ_SLAVE=='2'){
     LAST_STATE=STATE;
     STATE=AUTOMATIC;
@@ -312,7 +277,7 @@ void master_receive(){
   else if(READ_SLAVE=='9'){
     abrir_puerta_int();
     delay(30);
-    Serial.println("llegue a 9");
+    //Serial.println("llegue a 9");
    
   }
   else if(READ_SLAVE=='3'){
@@ -320,30 +285,30 @@ void master_receive(){
   }
   else if(READ_SLAVE=='4'){
     FLAG_PUERTA_INTERNA = true;
-    Serial.println("Puerta exterior abierta");
+    //Serial.println("Puerta exterior abierta");
   }
   else if(READ_SLAVE=='5'){
     FLAG_PUERTA_INTERNA = false;
-    Serial.println("Puerta exterior cerrada");
+    //Serial.println("Puerta exterior cerrada");
   }
   else if(READ_SLAVE=='A'){
      FLAG_ADENTRO=true;
-    Serial.println("Recibo por RS adentro de la esclusa");
+    //Serial.println("Recibo por RS adentro de la esclusa");
   }
   else if(READ_SLAVE=='B'){
     FLAG_ADENTRO=false;
-    Serial.println("Recibo por RS no hay nadie adentro de la esclusa");
+    //Serial.println("Recibo por RS no hay nadie adentro de la esclusa");
   }
   else if(READ_SLAVE=='C'){
     FLAG_FLUJO=true;
-    Serial.println("Recibo por RS que hay alguien entrando al local");
+    //Serial.println("Recibo por RS que hay alguien entrando al local");
   }
   else if(READ_SLAVE=='D'){
     FLAG_FLUJO=false;
-    Serial.println("Recibo por RS hay alguien saliendo del local");
+    //Serial.println("Recibo por RS hay alguien saliendo del local");
   }
   /*else{
-    Serial.print("Recibi basura por RS...");
+    //Serial.print("Recibi basura por RS...");
   }*/
   }
 }
@@ -357,26 +322,22 @@ void master_receive(){
 void mode_no_esclusa(){
   int i=0;
   digitalWrite(S7,HIGH);//Prendo el DPS si estoy en modo no esclusa
-  Serial.println("Prendo DPS");
+  ////Serial.println("Prendo DPS");
   //Destrabo la puerta mecanicamente si vengo desde el modo esclusa.
   pulse(PINOUT_OUTPUTS[11],false);
-  Serial.println("Estoy en modo automatico");
+  ////Serial.println("Estoy en modo automatico");
   while(STATE==AUTOMATIC){
-    if(Serial.available()){
-      command = Serial.readStringUntil('\n');
-      i=0;
-      if(command.equals("2"))requiere_averia();
-      String prueba[]={"3","4","5","6","7","8"};
+    i=2;
+      if(digitalRead(PINOUT_INPUTS[1])==HIGH)requiere_averia();
       while(i<9){
-        if(command.equals(prueba[i])){
-          pulse(PINOUT_OUTPUTS[i],false);
+        if(digitalRead(PINOUT_INPUTS[i])==HIGH){
+          pulse(PINOUT_OUTPUTS[i-2],false);
         }
         i++;
       }
-    }
-     if(Serial3.available())
+     if(Serial.available())
       {
-        READ_SLAVE=Serial3.read();
+        READ_SLAVE=Serial.read();
        master_receive();
       }
   }
@@ -384,12 +345,12 @@ void mode_no_esclusa(){
 }
 
 void mode_panic(){
-  Serial.println("Estoy en modo panico");
+  //Serial.println("Estoy en modo panico");
   digitalWrite(S11,HIGH);
   while(STATE==PANIC)
- { if(Serial3.available())
+ { if(Serial.available())
       {
-      READ_SLAVE=Serial3.read();
+      READ_SLAVE=Serial.read();
        master_receive();
       }
 }
@@ -402,10 +363,10 @@ void mode_only_leave(){
   int i=4;
   bool flag=true;
   digitalWrite(S10,HIGH);
-  Serial.println("Modo solo salir");
+  //Serial.println("Modo solo salir");
   while(STATE==ONLYLEAVE){
-    if(Serial3.available())
-    {READ_SLAVE=Serial3.read();
+    if(Serial.available())
+    {READ_SLAVE=Serial.read();
     master_receive();
     }
   }
@@ -447,14 +408,14 @@ void check_state(){
   }
 
   void requiere_averia(){
-    Serial.println("Requiere averia");
+    //Serial.println("Requiere averia");
     //reproducir un audio
   }
 
   void abrir_puerta_int(){
     //Mandamos por RS232 commando a slave para abrir la puerta.
         digitalWrite(pinSerial,HIGH);
-        Serial3.write('9');
+        Serial.write('9');
         delay(199);
         digitalWrite(pinSerial,LOW);
   }
